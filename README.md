@@ -1,19 +1,19 @@
 # Punjabi Text Rewriting Evaluation Toolkit
 
-A compact repo for building and evaluating a Punjabi (Gurmukhi) benchmark across six rewriting tasks.
+This repository presents a focused evaluation project for Punjabi (Gurmukhi) rewriting quality across multiple real-world transformation tasks.
 
-## Goal
+## Project Intent
 
-Train-time and eval-time consistency for Punjabi text rewriting by:
+This is a research-style benchmark repository meant to be read and inspected.
 
-- building a Punjabi evaluation JSONL from translated pairs,
-- injecting realistic noise for robustness testing,
-- evaluating PRISM and baseline LLMs in zero-shot and few-shot modes,
-- generating task-wise and model-wise comparison tables.
+The project demonstrates:
 
-This repo is designed for fast, repeatable model comparisons on the same fixed evaluation set.
+- task-diverse Punjabi rewriting evaluation,
+- parallel assessment of a fine-tuned system and strong baseline models,
+- robustness testing through controlled noise injection,
+- consistent metric-based comparison across task families.
 
-## Tasks Covered
+## Task Families
 
 - Compression
 - Text Normalization
@@ -22,125 +22,50 @@ This repo is designed for fast, repeatable model comparisons on the same fixed e
 - Style Paraphrase
 - Controlled Rewrite
 
-## Repository Files
+Together, these tasks represent both meaning-preserving rewriting and form-sensitive transformation.
 
-- `build_pa_jsonl.py`: Builds Punjabi eval JSONL from translated sheet + English source IDs/tasks.
-- `noise_injector.py`: Adds synthetic noise to Noise Robust Normalization inputs.
-- `evaluate.py`: Unified evaluator (PRISM + baselines) with metrics + reporting.
-- `prism_eval_en.jsonl`: English source evaluation set (IDs/tasks/metadata).
-- `translation_sheet.tsv`: Translation sheet used to create Punjabi eval JSONL.
-- `translation_sheet.csv`: CSV version of translation data.
-- `punjab.txt`: Human-readable Punjabi task data.
-- `english_input_reference_output.csv`: Extracted input/reference pairs.
-- `requirements.txt`: Python dependencies.
+## Dataset and Pipeline Design
 
-## Setup
+The benchmark is built from a curated English seed set and a Punjabi translation layer, then transformed into a model-ready JSONL format. A dedicated noise pass is applied to robustness examples to emulate realistic orthographic and punctuation corruption.
 
-### 1) Create and activate environment
+At evaluation time, each model is tested in both zero-shot and few-shot prompting modes under a shared prompt/evaluation framework to keep comparisons fair.
 
-```bash
-python3 -m venv eval
-source eval/bin/activate
-```
+## Evaluation Lens
 
-### 2) Install dependencies
+Performance is measured using complementary lexical and semantic metrics:
 
-```bash
-pip install -r requirements.txt
-```
-
-## End-to-End Workflow
-
-### Step 1: Build Punjabi eval JSONL
-
-Use your current root-level files:
-
-```bash
-python build_pa_jsonl.py \
-  --sheet translation_sheet.tsv \
-  --source prism_eval_en.jsonl \
-  --out prism_eval_pa.jsonl
-```
-
-### Step 2: Inject noise (for robustness task)
-
-```bash
-python noise_injector.py \
-  --input prism_eval_pa.jsonl \
-  --output prism_eval_pa_final.jsonl
-```
-
-### Step 3: Configure model paths in evaluator
-
-Open `evaluate.py` and update `MODEL_REGISTRY` (especially `prism.path`) to valid local or hub model paths.
-
-### Step 4: Run evaluations
-
-Single model:
-
-```bash
-python evaluate.py --model prism --mode zeroshot --eval_set prism_eval_pa_final.jsonl
-python evaluate.py --model prism --mode fewshot  --eval_set prism_eval_pa_final.jsonl
-```
-
-Baselines:
-
-```bash
-python evaluate.py --model llama   --mode zeroshot --eval_set prism_eval_pa_final.jsonl
-python evaluate.py --model mistral --mode fewshot  --eval_set prism_eval_pa_final.jsonl
-python evaluate.py --model gemma   --mode zeroshot --eval_set prism_eval_pa_final.jsonl
-python evaluate.py --model qwen    --mode fewshot  --eval_set prism_eval_pa_final.jsonl
-```
-
-All models and both modes:
-
-```bash
-python evaluate.py --model all --mode all --eval_set prism_eval_pa_final.jsonl
-```
-
-### Step 5: Print comparison tables
-
-```bash
-python evaluate.py --report
-```
-
-## Metrics Reported
-
-- BLEU (character tokenization)
+- BLEU
 - chrF++
 - ROUGE-L
-- BERTScore (P/R/F1, multilingual)
-- Word-level F1 (token overlap)
+- BERTScore (precision, recall, F1)
+- Word-level F1 overlap
 
-## Output Artifacts
+This combination is intended to capture both surface alignment and semantic adequacy for Punjabi outputs.
 
-`evaluate.py` writes results to `results/`:
+## Repository Contents
 
-- per-task predictions: `<model>_<task>_<mode>.jsonl`
-- per-run metrics: `<model>_<mode>_metrics.json`
+- build_pa_jsonl.py: builds Punjabi evaluation records from source IDs and translated fields.
+- noise_injector.py: injects synthetic noise for robustness-oriented inputs.
+- evaluate.py: unified evaluation engine with multi-model support and report generation.
+- prism_eval_en.jsonl: English reference source set.
+- translation_sheet.tsv and translation_sheet.csv: translation staging sheets.
+- punjab.txt: readable Punjabi task examples and references.
+- english_input_reference_output.csv: extracted input/reference pairs.
+- requirements.txt: dependency manifest.
 
-The report mode loads all saved metrics files and prints ranked tables by metric and mode.
+## What This Repo Shows
 
-## Notes
+- A compact but complete Punjabi rewriting benchmark workflow.
+- A reproducible structure for model-to-model comparison.
+- A practical framework for tracking quality across diverse rewrite objectives.
 
-- `evaluate.py` defaults to `eval_set/prism_eval_pa_final.jsonl`. In this repo, your generated files are currently in the root, so pass `--eval_set prism_eval_pa_final.jsonl` unless you move files into an `eval_set/` folder.
-- Few-shot examples are sampled per task with a fixed seed for reproducibility.
-- The evaluator uses vLLM and expects compatible GPU resources.
+## Current Scope
 
-## Minimal Quick Run
+The repository is intentionally small and focused, prioritizing clarity of benchmark construction and interpretability of results over large-scale infrastructure.
 
-```bash
-source eval/bin/activate
-pip install -r requirements.txt
-python build_pa_jsonl.py --sheet translation_sheet.tsv --source prism_eval_en.jsonl --out prism_eval_pa.jsonl
-python noise_injector.py --input prism_eval_pa.jsonl --output prism_eval_pa_final.jsonl
-python evaluate.py --model prism --mode zeroshot --eval_set prism_eval_pa_final.jsonl
-python evaluate.py --report
-```
+## Next Evolution
 
-## Future Improvements
-
-- Add a data validation script for missing IDs or empty translations.
-- Add a small unit test suite for parsing and metric sanity checks.
-- Add a reproducible config file for model paths and runtime settings.
+- Add explicit data validation checks for missing or malformed records.
+- Add lightweight automated tests for parser and metric sanity.
+- Externalize model/runtime configuration for cleaner experiment management.
 # PRISM-Evals
